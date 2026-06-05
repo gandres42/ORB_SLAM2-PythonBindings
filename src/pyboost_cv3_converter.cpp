@@ -8,9 +8,20 @@
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL pbcvt_ARRAY_API
 #include <pyboostcvconverter/pyboostcvconverter.hpp>
-#if CV_VERSION_MAJOR == 3
+// OpenCV 4 keeps the OpenCV 3 C++/Mat API used here, so this converter also
+// covers OpenCV 4 (the cv2 converter handles the legacy OpenCV 2 API).
+#if CV_VERSION_MAJOR >= 3
 namespace pbcvt {
 using namespace cv;
+
+// OpenCV 4 changed cv::MatAllocator's access-flag parameters from int to the
+// scoped cv::AccessFlag enum. Alias the right type so the allocator overrides
+// below match the pure virtuals on both OpenCV 3 and 4.
+#if CV_VERSION_MAJOR >= 4
+typedef cv::AccessFlag PbcvtAccessFlag;
+#else
+typedef int PbcvtAccessFlag;
+#endif
 //===================   ERROR HANDLING     =========================================================
 
 static int failmsg(const char *fmt, ...) {
@@ -90,7 +101,7 @@ public:
 	}
 
 	UMatData* allocate(int dims0, const int* sizes, int type, void* data,
-			size_t* step, int flags, UMatUsageFlags usageFlags) const {
+			size_t* step, PbcvtAccessFlag flags, UMatUsageFlags usageFlags) const {
 		if (data != 0) {
 			CV_Error(Error::StsAssert, "The data should normally be NULL!");
 			// probably this is safe to do in such extreme case
@@ -125,7 +136,7 @@ public:
 		return allocate(o, dims0, sizes, type, step);
 	}
 
-	bool allocate(UMatData* u, int accessFlags,
+	bool allocate(UMatData* u, PbcvtAccessFlag accessFlags,
 			UMatUsageFlags usageFlags) const {
 		return stdAllocator->allocate(u, accessFlags, usageFlags);
 	}
