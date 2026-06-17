@@ -75,7 +75,12 @@ class System:
     def get_num_matched_features(self) -> int: ...
     def get_keyframe_points(self) -> list[Pose]: ...
     def get_trajectory_points(self) -> list[Pose]:
-        """Keyframe trajectory (this fork does not expose the per-frame tracker)."""
+        """Full per-frame camera trajectory, including non-keyframe poses.
+
+        Reconstructed from the tracker's relative frame poses via
+        ``System::GetTrajectoryPoints``; unlike :meth:`get_keyframe_points` this
+        includes the intermediate frames. Frames lost during tracking are skipped.
+        """
         ...
     def get_tracked_mappoints(self) -> list[Point3]: ...
     def get_high_quality_mappoints(self) -> list[Point3]:

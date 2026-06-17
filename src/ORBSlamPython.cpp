@@ -381,26 +381,25 @@ boost::python::list ORBSlamPython::getTrajectoryPoints() const
 
     // The original bindings reconstructed the full per-frame trajectory from the
     // tracker's relative frame poses (mlRelativeFramePoses / mlpReferences /
-    // mlFrameTimes). This fork no longer exposes the tracker, so we fall back to
-    // the keyframe trajectory, which is available through the now-public map.
-    vector<ORB_SLAM2::KeyFrame*> vpKFs = system->mpMap->GetAllKeyFrames();
-    std::sort(vpKFs.begin(), vpKFs.end(), ORB_SLAM2::KeyFrame::lId);
+    // mlFrameTimes), which the keyframe-only fallback could not reproduce (it was
+    // missing every intermediate, non-keyframe pose). The fork keeps the tracker
+    // private, so that reconstruction now lives in System::GetTrajectoryPoints(),
+    // which returns (timestamp, Tcw) pairs (Tcw = 4x4 world-to-camera transform).
+    std::vector<std::pair<double, cv::Mat>> traj = system->GetTrajectoryPoints();
 
     boost::python::list trajectory;
 
-    for (size_t i = 0; i < vpKFs.size(); i++)
+    for (size_t i = 0; i < traj.size(); i++)
     {
-        ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
-
-        if (pKF->isBad())
-            continue;
+        const double timestamp = traj[i].first;
+        const cv::Mat& Tcw = traj[i].second;
 
         // Camera-to-world rotation and the camera centre in world coordinates.
-        cv::Mat Rwc = pKF->GetRotation().t();
-        cv::Mat twc = pKF->GetCameraCenter();
+        cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
+        cv::Mat twc = -Rwc * Tcw.rowRange(0, 3).col(3);
 
         trajectory.append(boost::python::make_tuple(
-                            pKF->mTimeStamp,
+                            timestamp,
                             Rwc.at<float>(0,0),
                             Rwc.at<float>(0,1),
                             Rwc.at<float>(0,2),
