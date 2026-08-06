@@ -40,6 +40,9 @@ class TrackingState(int):
 Pose = tuple[float, float, float, float, float, float, float, float, float, float, float, float, float]
 # A map point in world coordinates: (x, y, z).
 Point3 = tuple[float, float, float]
+# A tracked feature: undistorted 2D pixel location plus its triangulated 3D
+# world point, i.e. (u, v, x, y, z).
+Feature = tuple[float, float, float, float, float]
 
 class System:
     """Python wrapper around ``ORB_SLAM2::System``."""
@@ -83,6 +86,14 @@ class System:
         """
         ...
     def get_tracked_mappoints(self) -> list[Point3]: ...
+    def get_tracked_features(self) -> list[Feature]:
+        """Currently tracked features: undistorted 2D pixel + triangulated 3D point.
+
+        Index-aligned pairing of the current frame's keypoints and their
+        associated map points; features without a triangulated landmark yet
+        are omitted.
+        """
+        ...
     def get_high_quality_mappoints(self) -> list[Point3]:
         """Current high-quality map points (this fork's HQ-manager feature)."""
         ...

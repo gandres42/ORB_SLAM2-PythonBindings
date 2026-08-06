@@ -34,6 +34,7 @@ public:
     boost::python::list getKeyframePoints() const;
     boost::python::list getTrajectoryPoints() const;
     boost::python::list getTrackedMappoints() const;
+    boost::python::list getTrackedFeatures() const;
     boost::python::list getHighQualityMappoints() const;
     boost::python::list popNewHighQualityMappoints();
     bool saveSettings(boost::python::dict settings) const;

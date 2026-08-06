@@ -61,6 +61,7 @@ BOOST_PYTHON_MODULE(orbslam2)
         .def("get_keyframe_points", &ORBSlamPython::getKeyframePoints)
         .def("get_trajectory_points", &ORBSlamPython::getTrajectoryPoints)
         .def("get_tracked_mappoints", &ORBSlamPython::getTrackedMappoints)
+        .def("get_tracked_features", &ORBSlamPython::getTrackedFeatures)
         .def("get_high_quality_mappoints", &ORBSlamPython::getHighQualityMappoints)
         .def("pop_new_high_quality_mappoints", &ORBSlamPython::popNewHighQualityMappoints)
         .def("get_tracking_state", &ORBSlamPython::getTrackingState)
@@ -348,6 +349,42 @@ boost::python::list ORBSlamPython::getTrackedMappoints() const
     // include null entries (keypoints with no associated landmark) and bad
     // points, so the conversion helper skips those rather than dereferencing them.
     return mapPointsToList(system->GetTrackedMapPoints());
+}
+
+boost::python::list ORBSlamPython::getTrackedFeatures() const
+{
+    if (!system)
+    {
+        return boost::python::list();
+    }
+
+    // GetTrackedKeyPointsUn() and GetTrackedMapPoints() are filled from the same
+    // current-frame slots (mCurrentFrame.mvKeysUn / mvpMapPoints) and therefore
+    // stay index-aligned; a feature only has a 3D point once it has been
+    // triangulated and associated with a landmark, so null/bad entries (2D-only
+    // features) are skipped here.
+    std::vector<cv::KeyPoint> keypoints = system->GetTrackedKeyPointsUn();
+    std::vector<ORB_SLAM2::MapPoint*> mapPoints = system->GetTrackedMapPoints();
+
+    boost::python::list features;
+    size_t n = std::min(keypoints.size(), mapPoints.size());
+    for (size_t i = 0; i < n; i++)
+    {
+        ORB_SLAM2::MapPoint* pMP = mapPoints[i];
+        if (!pMP || pMP->isBad())
+        {
+            continue;
+        }
+        cv::Mat wp = pMP->GetWorldPos();
+        features.append(boost::python::make_tuple(
+            keypoints[i].pt.x,
+            keypoints[i].pt.y,
+            wp.at<float>(0,0),
+            wp.at<float>(1,0),
+            wp.at<float>(2,0)
+            ));
+    }
+    return features;
 }
 
 boost::python::list ORBSlamPython::getHighQualityMappoints() const
